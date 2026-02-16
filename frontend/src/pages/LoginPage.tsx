@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import {
   Alert,
   AlertIcon,
@@ -14,26 +15,31 @@ import {
 } from "@chakra-ui/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { useAuth } from "../state/AuthContext";
+import { getErrorMessage } from "../utils/errors";
+import type { LoginPayload } from "../types";
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const { login } = useAuth();
+  const [form, setForm] = useState<LoginPayload>({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onChange = (event) => {
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
-      await api.register(form);
-      navigate("/login");
-    } catch (submitError) {
-      setError(submitError.message);
+      const user = await api.login(form);
+      login(user);
+      navigate("/users");
+    } catch (submitError: unknown) {
+      setError(getErrorMessage(submitError));
     } finally {
       setLoading(false);
     }
@@ -43,7 +49,7 @@ export default function RegisterPage() {
     <Container maxW="md" py={16}>
       <Box p={8} borderWidth="1px" borderRadius="lg">
         <Heading size="lg" mb={6}>
-          Register
+          Login
         </Heading>
         <form onSubmit={onSubmit}>
           <Stack spacing={4}>
@@ -54,10 +60,6 @@ export default function RegisterPage() {
               </Alert>
             ) : null}
             <FormControl isRequired>
-              <FormLabel>Name</FormLabel>
-              <Input name="name" value={form.name} onChange={onChange} />
-            </FormControl>
-            <FormControl isRequired>
               <FormLabel>Email</FormLabel>
               <Input type="email" name="email" value={form.email} onChange={onChange} />
             </FormControl>
@@ -66,10 +68,10 @@ export default function RegisterPage() {
               <Input type="password" name="password" value={form.password} onChange={onChange} />
             </FormControl>
             <Button type="submit" colorScheme="teal" isLoading={loading}>
-              Register
+              Login
             </Button>
-            <Link as={RouterLink} to="/login" color="teal.500">
-              Have an account? Login
+            <Link as={RouterLink} to="/register" color="teal.500">
+              No account? Register here
             </Link>
           </Stack>
         </form>

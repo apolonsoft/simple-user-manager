@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import {
   Alert,
   AlertIcon,
@@ -20,14 +21,16 @@ import {
 } from "@chakra-ui/react";
 import { api } from "../api/client";
 import { useAuth } from "../state/AuthContext";
+import { getErrorMessage } from "../utils/errors";
+import type { AuthUser, UserPayload } from "../types";
 
-const emptyForm = { name: "", email: "", password: "" };
+const emptyForm: UserPayload = { name: "", email: "", password: "" };
 
 export default function UsersPage() {
   const { user, logout } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
+  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [form, setForm] = useState<UserPayload>(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,8 +38,8 @@ export default function UsersPage() {
     try {
       const data = await api.getUsers();
       setUsers(data);
-    } catch (loadError) {
-      setError(loadError.message);
+    } catch (loadError: unknown) {
+      setError(getErrorMessage(loadError));
     }
   }
 
@@ -44,7 +47,7 @@ export default function UsersPage() {
     loadUsers();
   }, []);
 
-  const onChange = (event) => {
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
@@ -53,37 +56,37 @@ export default function UsersPage() {
     setEditingId(null);
   };
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
-      if (editingId) {
+      if (editingId !== null) {
         await api.updateUser(editingId, form);
       } else {
         await api.createUser(form);
       }
       resetForm();
       await loadUsers();
-    } catch (submitError) {
-      setError(submitError.message);
+    } catch (submitError: unknown) {
+      setError(getErrorMessage(submitError));
     } finally {
       setLoading(false);
     }
   };
 
-  const onEdit = (selectedUser) => {
+  const onEdit = (selectedUser: AuthUser) => {
     setEditingId(selectedUser.id);
     setForm({ name: selectedUser.name, email: selectedUser.email, password: "" });
   };
 
-  const onDelete = async (id) => {
+  const onDelete = async (id: number) => {
     setError("");
     try {
       await api.deleteUser(id);
       await loadUsers();
-    } catch (deleteError) {
-      setError(deleteError.message);
+    } catch (deleteError: unknown) {
+      setError(getErrorMessage(deleteError));
     }
   };
 
@@ -117,7 +120,7 @@ export default function UsersPage() {
               <FormLabel>Email</FormLabel>
               <Input type="email" name="email" value={form.email} onChange={onChange} />
             </FormControl>
-            <FormControl isRequired={!editingId}>
+            <FormControl isRequired={editingId === null}>
               <FormLabel>{editingId ? "Password (optional)" : "Password"}</FormLabel>
               <Input type="password" name="password" value={form.password} onChange={onChange} />
             </FormControl>
